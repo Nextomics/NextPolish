@@ -42,7 +42,7 @@ click [here](https://github.com/Nextomics/NextPolish/releases/download/v1.0.1/Ne
 	[General]                # global options
 	job_type = sge           # [local, sge, pbs...]. (default: sge)
 	job_prefix = nextPolish  # prefix tag for jobs. (default: nextPolish)
-	task = all               # task need to run [all, default, best, 1, 2, 3, 4, 12, 123, 12123...], all=1234, default=12, best=12121212. (default: default)
+	task = best               # task need to run [all, default, best, 1, 2, 3, 4, 12, 123, 12123...], all=1234, default=12, best=12121212. (default: default)
 	rewrite = no             # overwrite existed directory [yes, no]. (default: no)
 	rerun = 3                # re-run unfinished jobs untill finished or reached ${rerun} loops, 0=no. (default: 3)
 	parallel_jobs = 30       # number of tasks used to run in parallel. (default: 30)
