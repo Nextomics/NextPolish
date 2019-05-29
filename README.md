@@ -144,4 +144,4 @@ NextPolish is freely available for academic use and other non-commercial use.
 	8. ERROR: drmaa.errors.DeniedByDrmException: code 17: error: no suitable queues.    
 	This is usually caused by a wrong setting of cluster_options, please check cluster_options first. If you use SGE, you also can add '-w n' to cluster_options, it will switch off validation for invalid resource requests. Please add a similar option for other job scheduling systems. 
 	9. OSError: /path/lib64/libc.so.6: version `GLIBC_2.14' not found (required by /path/NextPolish/lib/calgs.so).  
-	Please download [this version](https://github.com/Nextomics/NextPolish/releases/download/v1.0.2/NextPolish1.0.0-CentOS6.9.tgz) and try again.
+	Please download [this version](https://github.com/Nextomics/NextPolish/releases/download/v1.0.2/NextPolish-CentOS6.9.tgz) and try again.
