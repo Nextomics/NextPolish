@@ -203,18 +203,17 @@
 
 * **Count SNP/Indel**  
     ```
-    #!/bin/bash
+   #!/bin/bash
 
-    vcf_file=$1
-    total_snp=$(grep -v '#' ${vcf_file}|grep snp|wc -l)
-    #echo total_snp: $total_snp
-    homo_snp=$(grep -v '#' ${vcf_file}|grep snp|grep "1/1"|wc -l)
-    echo homo_snp: $homo_snp
+   vcf=$1
+   homosnp=$(grep -v '#' ${vcf}|grep snp|grep "1/1"|wc -l)
+   echo homosnp: $homosnp
 
-    total_indel=$(grep -v '#' ${vcf_file}|egrep 'ins|del'|wc -l)
-    #echo total_indel: $total_indel
-    homo_indel=$(grep -v '#' ${vcf_file}|egrep 'ins|del'|grep "1/1"|wc -l)
-    echo homo_indel: $homo_indel
+   homoindel=$(grep -v '#' ${vcf}|egrep 'ins|del'|grep "1/1"|wc -l)
+   echo homoindel: $homoindel
+
+   hetererrors=$(grep -v '#' ${vcf}|cut -f 10 |sed 's/:/\t/g' |awk '$4==0'|grep -v 1/1 |wc -l)
+   echo hetererrors: $hetererrors
     ```
 
 * **Count mapped genes**
