@@ -79,7 +79,7 @@ canu -pacbio-raw pacbio_0001.fastq -p asm -d canu-pb useGrid=True genomeSize=250
     task = 1212
     rewrite = yes
     rerun = 3
-    parallel_jobs = 5
+    parallel_jobs = 1
     multithread_jobs = 5
     genome = asm.contigs.fasta
     genome_size = auto
