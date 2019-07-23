@@ -131,21 +131,23 @@ NextPolish is freely available for academic use and other non-commercial use.
 * **PLEASE STAR AND THANKS**    
 
 * **FAQ**  
-	1. Which job scheduling systems are supported by NextPolish?  
+	1. What is the difference between [NextPolish](https://github.com/Nextomics/NextPolish) and [Pilon](https://github.com/broadinstitute/pilon)?  
+	Currently, NextPolish is focuses on genome correction using shotgun reads, which is also one of the most important steps (typically the last step) to accomplish a genome assembly, while Pilon can be used to make other improvements. For genome correction, NextPolish consumes considerable less time and has a higher correction accuracy for genomes with same sizes and such an advantage becomes more and more significant when the genome size of targeted assemblies increased compared to Pilon. See PERFORMANCE COMPARISION section for more details.
+	2. Which job scheduling systems are supported by NextPolish?  
 	NextPolish use [DRMAA](https://en.wikipedia.org/wiki/DRMAA) to submit, control, and monitor jobs, so in theory, support all DRMAA-compliant system, such as LOCAL, SGE, PBS, SLURM.
-	2. How to continue running unfinished tasks?  
+	3. How to continue running unfinished tasks?  
 	No need to make any changes, simply run the same command again.
-	3. Is it necessary to run steps 3 and 4?  
+	4. Is it necessary to run steps 3 and 4?  
 	In most cases, you can only run steps 1 and 2, steps 3 and 4 are experimental, and we do not currently recommend running on a actual project.
-	4. How many iterations to run NextPolish cyclically to get the best result?  
+	5. How many iterations to run NextPolish cyclically to get the best result?  
 	Our test shown that run NextPolish with 4 iterations, and almost all the bases with effectively covered by SGS data can be corrected. Please set task = best to get the best result. Set task = 12121212 means NextPolish will cyclically run steps 1 and 2 with 4 iterations.
-	5. What is the difference between bwa or minimap2 to do SGS data mapping?  
+	6. What is the difference between bwa or minimap2 to do SGS data mapping?  
 	Our test shown Minimap2 is about 3 times faster than bwa, but the accuracy of polished genomes using minimap2 or bwa is tricky, depending on the error rate of genomes and SGS data, see [here](https://lh3.github.io/2018/04/02/minimap2-and-the-future-of-bwa) for more details.
-	6. How to specify the queue name/cpu/memory/bash to submit jobs?  
+	7. How to specify the queue name/cpu/memory/bash to submit jobs?  
 	Please use cluster_options, NextPolish will replace {vf}, {cpu}, {bash} with specific values needed for each jobs.
-	7. RuntimeError: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH.   
+	8. RuntimeError: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH.   
 	Please setup the environment variable: DRMAA_LIBRARY_PATH, see [here](https://github.com/pygridtools/drmaa-python) for more details.
-	8. ERROR: drmaa.errors.DeniedByDrmException: code 17: error: no suitable queues.    
+	9. ERROR: drmaa.errors.DeniedByDrmException: code 17: error: no suitable queues.    
 	This is usually caused by a wrong setting of cluster_options, please check cluster_options first. If you use SGE, you also can add '-w n' to cluster_options, it will switch off validation for invalid resource requests. Please add a similar option for other job scheduling systems. 
-	9. OSError: /path/lib64/libc.so.6: version `GLIBC_2.14' not found (required by /path/NextPolish/lib/calgs.so).  
+	10. OSError: /path/lib64/libc.so.6: version `GLIBC_2.14' not found (required by /path/NextPolish/lib/calgs.so).  
 	Please download [this version](https://github.com/Nextomics/NextPolish/releases/download/v1.0.3/NextPolish-CentOS6.9.tgz) and try again.
