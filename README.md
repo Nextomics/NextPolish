@@ -13,7 +13,7 @@ click [here](https://github.com/Nextomics/NextPolish/releases/download/v1.0.3/Ne
 	* [Python 2.7](https://www.python.org/download/releases/2.7/)
 	* [Shutil](https://docs.python.org/2/library/shutil.html)
 	* [Signal](https://docs.python.org/2/library/signal.html)
-	* [Drmaa](https://github.com/pygridtools/drmaa-python)
+	* [Drmaa](https://github.com/pygridtools/drmaa-python) (Only required by running under non-local system)
 
 * **INSTALL**  
 `cd NextPolish && make`
