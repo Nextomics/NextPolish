@@ -1,6 +1,6 @@
 # NextPolish
 
-NextPolish requires at least one assembly file (option: genome) and one read files list (option: sgs_fofn) as input, it works with gzip'd FASTA and FASTQ formats and uses a config file to pass options, see [here](../test_data/run.cfg) for an example.
+NextPolish requires at least one assembly file (option: genome) and one read files list (option: sgs_fofn) as input, it works with gzip'd FASTA and FASTQ formats and uses a config file to pass options, see [here](./run.cfg) for an example.
 
 * **INPUT**    
     - genome file  
