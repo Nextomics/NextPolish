@@ -34,7 +34,7 @@ click [here](https://github.com/Nextomics/NextPolish/releases/download/v1.0.5/Ne
 	4. Finally polished genome  
 	`cat 03.kmer_count/*polish.ref.sh.work/polish_genome*/genome.nextpolish.part*.fasta > input.genome.nextpolish.v2.fa`  
 
->***Optional:*** You can also use your own alignment pipeline and then use NextPolish to polish the genome, see [here](./doc/bwa.sh) for an example (using bwa to do alignment).
+>***Optional:*** You can also use your own alignment pipeline and then use NextPolish to polish the genome, which will faster than the default NextPolish pipeline when runing on a local system, see [here](./doc/bwa.sh) for an example (using bwa to do alignment).
 
 >***Note:*** If the raw genome generated without a consensus step, such as [miniasm](https://github.com/lh3/miniasm), please run the following command or [racon](https://github.com/isovic/racon) 2-3 rounds using long reads before running [NextPolish](https://github.com/Nextomics/NextPolish) to avoid incorrect mapping of shortgun reads due to the high error rate in the genome assembly.
 
