@@ -106,7 +106,7 @@
             NextPolish/bin/bwa index ${input};  
             NextPolish/bin/bwa mem -t 25 ${input} ${reads1} ${reads2} |NextPolish/bin/samtools view  -b - |NextPolish/bin/samtools fixmate -m --threads 5 - - |NextPolish/bin/samtools sort -m 5g --threads 5 - -o ${input}.sort.bam;   
             NextPolish/bin/samtools index ${input}.sort.bam;  
-            time -p java -Xmx50G -jar /home/huj/software/pilon-1.23.jar --genome ${input} --frags ${input}.sort.bam --output ${genome}.pilon.v${i} --threads 5;  
+            time -p java -Xmx50G -jar /home/huj/software/pilon-1.23.jar --genome ${input} --frags ${input}.sort.bam --output ${genome}.pilon.v${i} --threads 5 --fix bases;  
             input=${genome}.pilon.v${i}.fasta;  
         done
         ```
@@ -122,14 +122,14 @@
             NextPolish/bin/bwa mem -t 25 ${input} ${reads1} ${reads2} |NextPolish/bin/samtools view  -b - |NextPolish/bin/samtools fixmate -m --threads 5 - - |NextPolish/bin/samtools sort -m 5g --threads 5 - -o ${input}.sort.bam;   
             NextPolish/bin/samtools index ${input}.sort.bam;
             seqkit split2 -p 20 ${input};
-            ls ${input}.split|while read line;do time -p java -Xmx120G -jar /home/huj/software/pilon-1.23.jar --genome ${line} --frags ${input}.sort.bam --output ${line}.pilon --threads 5;done;
+            ls ${input}.split|while read line;do time -p java -Xmx120G -jar /home/huj/software/pilon-1.23.jar --genome ${line} --frags ${input}.sort.bam --output ${line}.pilon --threads 5 --fix bases;done;
             cat ${input}.split/*.pilon.fasta > ${genome}.pilon.v${i}.fasta;
             input=${genome}.pilon.v${i}.fasta;  
         done
         ```
     + Run  
     `nohup sh work.sh > pilon.log &`
-    + CPU time used for polishing (the CPU time for Pilon will dramatically reduced with the --fix bases parameter)  
+    + CPU time used for polishing  
     `egrep 'user|sys' pilon.log|awk '{x+=$2}END{print x}'`
 
 * **Run NextPolish**  
