@@ -1,4 +1,4 @@
-[![Downloads](https://img.shields.io/github/downloads/Nextomics/NextPolish/total.svg)](https://github.com/Nextomics/NextPolish/releases/download/v1.0.5/NextPolish.tgz)
+[![Downloads](https://img.shields.io/github/downloads/Nextomics/NextPolish/total?logo=github)](https://github.com/Nextomics/NextPolish/releases/download/v1.0.5/NextPolish.tgz)
 [![Release](https://img.shields.io/github/release/Nextomics/NextPolish.svg)](https://github.com/Nextomics/NextPolish/releases)
 [![Issues](https://img.shields.io/github/issues/Nextomics/NextPolish.svg)](https://github.com/Nextomics/NextPolish/issues)
 
@@ -78,7 +78,7 @@ NextPolish is freely available for academic use and other non-commercial use.
 	Our test shown that run NextPolish with 2 iterations, and most of the bases with effectively covered by SGS data can be corrected. Please set task = best to get the best result. Set task = best means NextPolish will cyclically run steps 1 and 2 with 2 iterations. Of course, you can require NextPolish to run with more iterations to get a better result, such as set task=12121212, which means NextPolish will cyclically run steps 1 and 2 with 4 iterations.
 	6. What is the difference between bwa or minimap2 to do SGS data mapping?  
 	Our test shown Minimap2 is about 3 times faster than bwa, but the accuracy of polished genomes using minimap2 or bwa is tricky, depending on the error rate of genomes and SGS data, see [here](https://lh3.github.io/2018/04/02/minimap2-and-the-future-of-bwa) for more details.
-	7. How to specify the queue name/cpu/memory/bash to submit jobs?  
+	7. How to specify the queue cpu/memory/bash to submit jobs?  
 	Please use cluster_options, NextPolish will replace {vf}, {cpu}, {bash} with specific values needed for each jobs.
 	8. RuntimeError: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH.   
 	Please setup the environment variable: DRMAA_LIBRARY_PATH, see [here](https://github.com/pygridtools/drmaa-python) for more details.
