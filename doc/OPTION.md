@@ -1,6 +1,6 @@
 # NextPolish
 
-NextPolish requires at least one assembly file (option: genome) and one read files list (option: sgs_fofn) as input, it works with gzip'd FASTA and FASTQ formats and uses a config file to pass options, see [here](./run.cfg) for an example.
+NextPolish requires at least one assembly file (option: genome) and one read files list (option: sgs_fofn or lgs_fofn) as input, it works with gzip'd FASTA and FASTQ formats and uses a config file to pass options, see [here](./run.cfg) for an example.
 
 * **INPUT**    
     - genome file  
@@ -17,7 +17,7 @@ genome.nextpolish.partnnn.fasta with fasta format, the fasta header includes pri
     [General]                # global options
     job_type = sge           # [local, sge, pbs...]. (default: sge)
     job_prefix = nextPolish  # prefix tag for jobs. (default: nextPolish)
-    task = best              # task need to run [all, default, best, 1, 2, 12, 1212...], default=12, best=1212. (default: default)
+    task = best              # task need to run [all, default, best, 1, 2, 5, 12, 1212...], all=[5]1234, default=[5]12, best=[55]1212. (default: default)
     rewrite = no             # overwrite existed directory [yes, no]. (default: no)
     rerun = 3                # re-run unfinished jobs untill finished or reached ${rerun} loops, 0=no. (default: 3)
     parallel_jobs = 30       # number of tasks used to run in parallel. (default: 30)
@@ -32,14 +32,14 @@ genome.nextpolish.partnnn.fasta with fasta format, the fasta header includes pri
     polish_options = -p {multithread_jobs}
                              # options used in polished step, see below.
 
-    [sgs_option]             # options of short reads. (<b>required</b>)
+    [sgs_option]             # options of short reads. (<b>optional</b>)
     sgs_fofn = ./sgs.fofn    # input short reads file, one file one line, paired-end files should be interleaved.
     sgs_options = -max_depth 100 -bwa
                              # -use_duplicate_reads, use duplicate pair-end reads in the analysis. (default: False)
                              # -unpaired, unpaired input files. (default: False)
                              # -max_depth, use up to ${max_depth} fold reads data to polish. (default: 100)
-                             # -bwa, use bwa to do mapping. 
-                             # -minimap2, use minimap2 to do mapping, which is much faster than bwa. (default: -minimap2)
+                             # -bwa, use bwa to do mapping. (default: -bwa) 
+                             # -minimap2, use minimap2 to do mapping, which is much faster than bwa. 
 
     [lgs_option]             # options of long reads. (<b>optional</b>)
     lgs_fofn = ./lgs.fofn    # input long reads file, one file one line.             
