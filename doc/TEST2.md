@@ -265,3 +265,5 @@
     print "\t".join(['#','unmap','truncate_map'])
     print "\t".join(map(str, ('#',unmaps,truncate_maps)))
     ```
+
+* **[Result](https://doi.org/10.1093/bioinformatics/btz891)**  
