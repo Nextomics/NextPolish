@@ -55,7 +55,7 @@ For additional help, please send an email to huj_at_grandomics_dot_com.
 NextPolish is freely available for academic use and other non-commercial use. 
 
 * **CITE**    
-Jiang Hu, Junpeng Fan, Zongyi Sun, Shanlin Liu, NextPolish: a fast and efficient genome polishing tool for long read assembly, Bioinformatics, , btz891, https://doi.org/10.1093/bioinformatics/btz891
+Hu, Jiang, et al. "NextPolish: a fast and efficient genome polishing tool for long read assembly." Bioinformatics (Oxford, England) (2019).
 
 * **PLEASE STAR AND THANKS**    
 
