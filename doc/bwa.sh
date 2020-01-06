@@ -1,10 +1,10 @@
 #Set input and parameters
-polished_round=2
+round=2
 threads=20 
 read1=reads1_R1.fastq.gz
 read2=reads1_R1.fastq.gz
 input=input.genome.fa
-for i in {1..${round}}; do
+for ((i=1; i<=${round};i++)); do
 #step 1:
 	#index the genome file and do alignment
 	bwa index ${input};
