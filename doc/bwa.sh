@@ -13,7 +13,7 @@ for ((i=1; i<=${round};i++)); do
 	samtools index -@ ${threads} sgs.sort.bam;
 	samtools faidx ${input};
 	#polish genome file
-	python NextPolish/lib/nextPolish.py -g ${input} -t 1 -p ${threads} -s sgs.sort.bam > genome.polishtemp.fa;
+	python NextPolish/lib/nextPolish1.py -g ${input} -t 1 -p ${threads} -s sgs.sort.bam > genome.polishtemp.fa;
 	input=genome.polishtemp.fa;
 #step2:
 	#index genome file and do alignment
@@ -23,7 +23,7 @@ for ((i=1; i<=${round};i++)); do
 	samtools index -@ ${threads} sgs.sort.bam;
 	samtools faidx ${input};
 	#polish genome file
-	python NextPolish/lib/nextPolish.py -g ${input} -t 2 -p ${threads} -s sgs.sort.bam > genome.nextpolish.fa;
+	python NextPolish/lib/nextPolish1.py -g ${input} -t 2 -p ${threads} -s sgs.sort.bam > genome.nextpolish.fa;
 	input=genome.nextpolish.fa;
 done;
 #Finally polished genome file: genome.nextpolish.fa
