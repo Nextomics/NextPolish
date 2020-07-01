@@ -47,7 +47,7 @@ Please see [doc/OPTION.md](doc/OPTION.md) for options introduction.
 	+ [Actual biological data](./doc/TEST2.md)
 
 * **HELP**   
-Please raise an issue at the [issue page](https://github.com/Nextomics/NextPolish/issues/new).
+Please raise an issue at the [issue page](https://github.com/Nextomics/NextPolish/issues/new/choose).
 
 * **CONTACT INFORMATION**    
 For additional help, please send an email to huj_at_grandomics_dot_com.
