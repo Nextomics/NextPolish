@@ -6,7 +6,7 @@ NextPolish requires at least one assembly file (option: genome) and one read fil
     - genome file  
     `genome=/path/to/need_to_be_polished_assembly_file`
     - reads files list (one file one line, paired-end files should be interleaved)  
-    `ls reads1_R1.fq reads1_R2.fq reads2_R1.fq reads2_R2.fq ... > sgs.fofn`
+    `ls reads1_R1.fq reads1_R2.fq reads2_R1.fq.gz reads2_R2.fq.gz ... > sgs.fofn`
 
 * **OUTPUT**    
     - genome.nextpolish.fasta with fasta format, the fasta header includes primary seqID, length.
@@ -18,13 +18,12 @@ NextPolish requires at least one assembly file (option: genome) and one read fil
     [General]                # global options
     job_type = sge           # [local, sge, pbs...]. (default: sge)
     job_prefix = nextPolish  # prefix tag for jobs. (default: nextPolish)
-    task = best              # task need to run [all, default, best, 1, 2, 5, 12, 1212...], all=[5]1234, default=[5]12, best=[55]1212. (default: default)
+    task = best              # task need to run [all, default, best, 1, 2, 5, 12, 1212...], 1, 2 are different algorithm modules for short reads, while 5 is the algorithm module for long reads, all=[5]1234, default=[5]12, best=[55]1212. (default: best)
     rewrite = no             # overwrite existed directory [yes, no]. (default: no)
     rerun = 3                # re-run unfinished jobs untill finished or reached ${rerun} loops, 0=no. (default: 3)
-    parallel_jobs = 30       # number of tasks used to run in parallel. (default: 30)
-    multithread_jobs = 20    # number of threads used to in a task. (default: 20)
-    cluster_options = -l vf={vf} -q all.q -pe smp {cpu} -S {bash} -w n
-                             # a template to define the resource requirements for each job, which will pass to <a href="https://github.com/pygridtools/drmaa-python/wiki/FAQ">DRMAA</a> as the nativeSpecification field.
+    parallel_jobs = 6        # number of tasks used to run in parallel. (default: 6)
+    multithread_jobs = 5     # number of threads used to in a task. (default: 5)
+    cluster_options = auto   # a template to define the resource requirements for each job, which will pass to DRMAA as the nativeSpecification field.
     genome = genome.fa       # genome file need to be polished. (<b>required</b>)
     genome_size = auto       # genome size, auto = calculate genome size using the input ${genome} file. (default: auto)
     workdir = 01_rundir      # work directory. (default: ./)
@@ -44,10 +43,10 @@ NextPolish requires at least one assembly file (option: genome) and one read fil
 
     [lgs_option]             # options of long reads. (<b>optional</b>)
     lgs_fofn = ./lgs.fofn    # input long reads file, one file one line.             
-    lgs_options = -min_read_len 1k -max_read_len 150k -max_depth 60
+    lgs_options = -min_read_len 1k -max_depth 100
                              # -min_read_len, filter reads with length shorter than ${min_read_len}. (default: 1k)
-                             # -max_read_len, filter reads with length longer than $ {max_read_len}, ultra-long reads usually contain lots of errors, and the mapping step requires significantly more memory and time. (default: 150k)
-                             # -max_depth, use up to ${max_depth} fold reads data to polish. (default: 60)
+                             # -max_read_len, filter reads with length longer than $ {max_read_len}, ultra-long reads usually contain lots of errors, and the mapping step requires significantly more memory and time, 0=disable (default: 0)
+                             # -max_depth, use up to ${max_depth} fold reads data to polish, 0=disable. (default: 100)
     lgs_minimap2_options = -x map-pb -t {multithread_jobs}
                              # minimap2 options, used to set PacBio/Nanopore read overlap. (<b>required</b>)
     
