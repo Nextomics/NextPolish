@@ -48,16 +48,17 @@ racon -t 20 ont.sumulated.reads.fa ont.map.paf ont.asm.fa > ont.asm.racon1.fa
 ```
 
 * **Run NextPolish**  
+Here we use a custom alignment pipeline and then use NextPolish to polish the genome. The genome accuracy after polishing is the same as using NextPolish pipeline to do the alignment, see [QUICK RUN](https://github.com/Nextomics/NextPolish) section.
 ```
 minimap2 -ax map-pb -t 20 pb.asm.fa pb.sumulated.reads.fa|samtools sort - -m 2g --threads 20 -o pb.map.bam
 samtools index pb.map.bam
 ls `pwd`/pb.map.bam > pb.map.bam.fofn
-python NextPolish/lib/nextpolish2.py -g pb.asm.fa -l pb.map.bam.fofn -r clr -p 20 -a -s -o pb.asm.nextpolish1.fa
+python NextPolish/lib/nextpolish2.py -g pb.asm.fa -l pb.map.bam.fofn -r clr -p 20 -a -sp -o pb.asm.nextpolish1.fa
 
 minimap2 -ax map-ont -t 20 ont.asm.fa ont.sumulated.reads.fa|samtools sort - -m 2g --threads 20 -o ont.map.bam
 samtools index ont.map.bam
 ls `pwd`/ont.map.bam > ont.map.bam.fofn
-python NextPolish/lib/nextpolish2.py -g ont.asm.fa -l ont.map.bam.fofn -r ont -p 20 -s -a -o ont.asm.nextpolish1.fa
+python NextPolish/lib/nextpolish2.py -g ont.asm.fa -l ont.map.bam.fofn -r ont -p 20 -sp -a -o ont.asm.nextpolish1.fa
 
 ```
 
