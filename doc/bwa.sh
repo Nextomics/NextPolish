@@ -1,8 +1,8 @@
 #Set input and parameters
 round=2
 threads=20 
-read1=reads1_R1.fastq.gz
-read2=reads1_R1.fastq.gz
+read1=reads_R1.fastq.gz
+read2=reads_R2.fastq.gz
 input=input.genome.fa
 for ((i=1; i<=${round};i++)); do
 #step 1:
