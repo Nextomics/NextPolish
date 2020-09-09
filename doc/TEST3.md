@@ -53,12 +53,12 @@ Here we use a custom alignment pipeline and then use NextPolish to polish the ge
 minimap2 -ax map-pb -t 20 pb.asm.fa pb.sumulated.reads.fa|samtools sort - -m 2g --threads 20 -o pb.map.bam
 samtools index pb.map.bam
 ls `pwd`/pb.map.bam > pb.map.bam.fofn
-python NextPolish/lib/nextpolish2.py -g pb.asm.fa -l pb.map.bam.fofn -r clr -p 20 -a -sp -o pb.asm.nextpolish1.fa
+python NextPolish/lib/nextpolish2.py -g pb.asm.fa -l pb.map.bam.fofn -r clr -p 20 -sp -o pb.asm.nextpolish1.fa
 
 minimap2 -ax map-ont -t 20 ont.asm.fa ont.sumulated.reads.fa|samtools sort - -m 2g --threads 20 -o ont.map.bam
 samtools index ont.map.bam
 ls `pwd`/ont.map.bam > ont.map.bam.fofn
-python NextPolish/lib/nextpolish2.py -g ont.asm.fa -l ont.map.bam.fofn -r ont -p 20 -sp -a -o ont.asm.nextpolish1.fa
+python NextPolish/lib/nextpolish2.py -g ont.asm.fa -l ont.map.bam.fofn -r ont -p 20 -sp -o ont.asm.nextpolish1.fa
 
 ```
 
