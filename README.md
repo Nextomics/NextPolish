@@ -29,7 +29,7 @@ click [here](https://github.com/Nextomics/NextPolish/releases/download/v1.3.0/Ne
 	`ls reads1_R1.fq reads1_R2.fq reads2_R1.fq reads2_R2.fq > sgs.fofn`
 	2. Create run.cfg  
 	`genome=input.genome.fa`  
-	`echo -e "task = 1212\ngenome = $genome\nsgs_fofn = sgs.fofn" > run.cfg`
+	`echo -e "task = best\ngenome = $genome\nsgs_fofn = sgs.fofn" > run.cfg`
 	3. Run  
 	`nextPolish run.cfg`
 	4. Finally polished genome  
@@ -68,9 +68,9 @@ Hu, Jiang, et al. "NextPolish: a fast and efficient genome polishing tool for lo
 	NextPolish use [DRMAA](https://en.wikipedia.org/wiki/DRMAA) to submit, control, and monitor jobs, so in theory, support all DRMAA-compliant system, such as LOCAL, SGE, PBS, SLURM.
 	3. How to continue running unfinished tasks?  
 	No need to make any changes, simply run the same command again.
-	4. How to set the `task` parameter?  
+	4. **How to set the `task` parameter?**  
 	The `task` parameter is used to set the polishing algorithm logic, 1, 2, 3, 4 are different algorithm modules for short reads, while 5 is the algorithm module for long reads. BTW, steps 3 and 4 are experimental, and we do not currently recommend running on a actual project. Set `task=551212` means NextPolish will cyclically run steps 5, 1 and 2 with 2 iterations. 
-	5. How many iterations to run NextPolish cyclically to get the best result?  
+	5. **How many iterations to run NextPolish cyclically to get the best result?**  
 	Our test shown that run NextPolish with 2 iterations, and most of the bases with effectively covered by SGS data can be corrected. Please set `task=best` to get the best result. Set `task = best` means NextPolish will cyclically run steps [5], 1 and 2 with 2 iterations. Of course, you can require NextPolish to run with more iterations to get a better result, such as set `task=555512121212`, which means NextPolish will cyclically run steps 5, 1 and 2 with 4 iterations.
 	6. Why does the contig N50 of polished genome become shorter or why does the polished genome contains some extra `N`?  
 	In some cases, if the short reads contain `N`, some error bases will be fixed by `N` (the global score of a kmer with `N` is the largest and be selected), and remove `N` in short reads will avoid this.  
