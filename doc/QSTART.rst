@@ -144,6 +144,11 @@ Cite
 
 `Hu, Jiang, et al. "NextPolish: a fast and efficient genome polishing tool for long read assembly." Bioinformatics (Oxford, England) (2019) <https://doi.org/10.1093/bioinformatics/btz891>`_.
 
+Limitations
+~~~~~~~~~~~
+
+NextPolish is designed for genomes assembled by long reads, so it assumes an input genome without gaps (``N`` bases). Therefore, please split your genome assembly by its gaps and then link thems back after polishing if your input contains gaps. Usually we scaffolded a genome using BioNano or Hic data after a polishing step.
+
 Star
 ~~~~
 
