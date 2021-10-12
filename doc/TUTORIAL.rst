@@ -200,3 +200,55 @@ Polishing using short reads and long reads
 
    - Sequence: ``/path_to_work_directory/genome.nextpolish.fasta``
    - Statistics: ``/path_to_work_directory/genome.nextpolish.fasta.stat``
+
+Polishing using short reads and hifi reads
+------------------------------------------------
+
+#. Prepare sgs_fofn
+
+   .. code-block:: shell
+
+      ls reads1_R1.fq reads1_R2.fq reads2_R1.fq reads2_R2.fq > sgs.fofn
+
+#. Prepare hifi_fofn
+
+   .. code-block:: shell
+
+      ls reads1.fq reads2.fa.gz > hifi.fofn
+
+#. Create run.cfg
+
+   .. code-block:: shell
+
+    [General]
+    job_type = local
+    job_prefix = nextPolish
+    task = best
+    rewrite = yes
+    rerun = 3
+    parallel_jobs = 6
+    multithread_jobs = 5
+    genome = ./raw.genome.fasta
+    genome_size = auto
+    workdir = ./01_rundir
+    polish_options = -p {multithread_jobs}
+
+    [sgs_option]
+    sgs_fofn = ./sgs.fofn
+    sgs_options = -max_depth 100 -bwa
+
+    [hifi_option]
+    hifi_fofn = ./hifi.fofn
+    hifi_options = -min_read_len 1k -max_depth 100
+    hifi_minimap2_options = -x map-pb
+
+#. Run
+
+   .. code-block:: shell
+
+      nextPolish run.cfg
+
+#. Finally polished genome
+
+   - Sequence: ``/path_to_work_directory/genome.nextpolish.fasta``
+   - Statistics: ``/path_to_work_directory/genome.nextpolish.fasta.stat``
