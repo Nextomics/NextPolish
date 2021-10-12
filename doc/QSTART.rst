@@ -33,13 +33,13 @@ Installation
 
    -  `Python <https://www.python.org/download/releases/>`__ (Support python 2 and 3):
 
-      -  `Psutil <https://psutil.readthedocs.io/en/latest/>`__
-      -  `Drmaa <https://github.com/pygridtools/drmaa-python>`__ (Only required by running under non-local system)
+      -  `Paralleltask <https://github.com/moold/ParallelTask>`__
 
 -  **INSTALL**
    
    .. code-block:: shell
-      
+   
+      pip install paralleltask
       tar -vxzf NextPolish.tgz && cd NextPolish && make
 
 -  **UNINSTALL**

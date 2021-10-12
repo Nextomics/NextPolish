@@ -14,7 +14,7 @@ Currently, NextPolish is focuses on genome correction using shotgun reads, which
 Which job scheduling systems are supported by NextPolish?
 ------------------------------------------------------------
 
-NextPolish use `DRMAA <https://en.wikipedia.org/wiki/DRMAA>`__ to submit, control, and monitor jobs, so in theory, support all DRMAA-compliant system, such as LOCAL, SGE, PBS, SLURM.
+NextPolish use `Paralleltask <https://github.com/moold/ParallelTask>`__ to submit, control, and monitor jobs, so in theory, support all Paralleltask-compliant system, such as LOCAL, SGE, PBS, SLURM.
 
 How to continue running unfinished tasks?
 --------------------------------------------
@@ -41,11 +41,6 @@ What is the difference between bwa or minimap2 to do SGS data mapping?
 
 Our test shown Minimap2 is about 3 times faster than bwa, but the accuracy of polished genomes using minimap2 or bwa is tricky, depending on the error rate of genomes and SGS data, see `here <https://lh3.github.io/2018/04/02/minimap2-and-the-future-of-bwa>`__ for more details.
 
-How to specify the queue cpu/memory/bash to submit jobs?
+How to specify the queue/cpu/memory/bash to submit jobs?   
 ------------------------------------------------------------
-Please use cluster_options, NextPolish will replace ``{vf}``, ``{cpu}``, ``{bash}`` with specific values needed for each jobs.
-
-RuntimeError: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH.
----------------------------------------------------------------------------------------------------------------------------------
-
-Please setup the environment variable: DRMAA_LIBRARY_PATH, see `here <https://github.com/pygridtools/drmaa-python>`__ for more details.
+See `here <https://github.com/moold/ParallelTask#configuration>`__ to edit the `Paralleltask <https://github.com/moold/ParallelTask>`__ configure template file ``cluster.cfg``, or use the ``submit`` parameter.
