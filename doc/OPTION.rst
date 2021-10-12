@@ -48,6 +48,11 @@ Input
     lgs_options = -min_read_len 1k -max_depth 100
     lgs_minimap2_options = -x map-ont
 
+    [hifi_option] #optional
+    hifi_fofn = ./hifi.fofn
+    hifi_options = -min_read_len 1k -max_depth 100
+    hifi_minimap2_options = -x asm20
+
 Output
 ------
 
@@ -87,13 +92,25 @@ Global options
   .. option:: multithread_jobs = 5     
 
     number of threads used to in a task. (default: 5)
-  .. option:: cluster_options = auto   
+  .. option:: submit = auto   
 
-    a template to define the resource requirements for each job, which will pass to DRMAA as the nativeSpecification field.
+    command to submit a job, auto = automatically set by `Paralleltask <https://github.com/moold/ParallelTask>`__.
+  .. option:: kill = auto   
+
+    command to kill a job, auto = automatically set by `Paralleltask <https://github.com/moold/ParallelTask>`__.
+  .. option:: check_alive = auto   
+
+    command to check a job status, auto = automatically set by `Paralleltask <https://github.com/moold/ParallelTask>`__.
+  .. option:: job_id_regex = auto   
+
+    the job-id-regex to parse the job id from the out of ``submit``, auto = automatically set by `Paralleltask <https://github.com/moold/ParallelTask>`__.
+  .. option:: use_drmaa = no   
+
+    use drmaa to submit and control jobs.
   .. option:: genome = genome.fa       
 
     genome file need to be polished. (**required**)
-  .. option::genome_size = auto       
+  .. option:: genome_size = auto       
 
     genome size, auto = calculate genome size using the input ${genome} file. (default: auto)
   .. option:: workdir = 01_rundir      
@@ -104,6 +121,7 @@ Global options
     ::
     
       -p, number of processes used for polishing.
+      -u, output uppercase sequences. (default: False)
       -debug, output details of polished bases to stderr, only useful in short read polishing. (default: False)
 
 Options for short reads
@@ -138,4 +156,21 @@ Options for long reads
       -max_depth, use up to ${max_depth} fold reads data to polish, 0=disable. (default: 100)  
   .. option:: lgs_minimap2_options = -x map-pb -t {multithread_jobs}
       
-    minimap2 options, used to set PacBio/Nanopore read overlap. (**required**)
+    minimap2 options, used to set PacBio/Nanopore reads mapping. (**required**)
+
+Options for hifi reads
+#######################
+
+  .. option:: hifi_fofn = ./hifi.fofn    
+
+    input hifi read files list, one file one line.             
+  .. option:: hifi_options = -min_read_len 1k -max_depth 100
+
+    ::
+
+      -min_read_len, filter reads with length shorter than ${min_read_len}. (default: 1k)
+      -max_read_len, filter reads with length longer than $ {max_read_len}, ultra-long reads usually contain lots of errors, and the mapping step requires significantly more memory and time, 0=disable (default: 0)
+      -max_depth, use up to ${max_depth} fold reads data to polish, 0=disable. (default: 100)  
+  .. option:: hifi_minimap2_options = -x map-pb -t {multithread_jobs}
+      
+    minimap2 options, used to set hifi reads mapping. (**required**)
