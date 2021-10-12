@@ -3,7 +3,7 @@
 NextPolish Parameter Reference
 ==============================
 
-NextPolish requires at least one assembly file (option: ``genome``) and one read file list (option: ``sgs_fofn`` or ``lgs_fofn``) as input, it works with gzip'd FASTA and FASTQ formats and uses a ``config file`` to pass options.
+NextPolish requires at least one assembly file (option: ``genome``) and one read file list (option: ``sgs_fofn`` or ``lgs_fofn`` or ``hifi_fofn``) as input, it works with gzip'd FASTA and FASTQ formats and uses a ``config file`` to pass options.
 
 Input
 -----
