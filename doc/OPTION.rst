@@ -31,6 +31,7 @@ Input
     job_prefix = nextPolish
     task = best
     rewrite = yes
+    deltmp = yes
     rerun = 3
     parallel_jobs = 6
     multithread_jobs = 5
@@ -83,6 +84,9 @@ Global options
   .. option:: rewrite = no             
 
     overwrite existed directory [yes, no]. (default: no)
+  .. option:: deltmp = yes      
+
+    delete intermediate results. (default: yes)
   .. option:: rerun = 3                
 
     re-run unfinished jobs untill finished or reached ${rerun} loops, 0=no. (default: 3)
