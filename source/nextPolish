@@ -1,0 +1,553 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import sys
+import os
+import re
+import signal
+import shutil
+import argparse
+from glob import iglob, glob
+from paralleltask import Task
+
+SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(SCRIPT_PATH + '/lib/')
+from kit import *
+from config_parser import ConfigParser
+
+log = ''
+step = 0
+maxint = 2147483648
+
+class HelpFormatter(argparse.RawDescriptionHelpFormatter,argparse.ArgumentDefaultsHelpFormatter):
+	pass
+
+def set_task(cfg, task, path = None, **args):
+	cmd = ''
+	if task == 'db_split':
+		cmd = db_split(cfg) + index_genome(cfg, genomefile = args['genomefile'], task = args['gtask'])
+		path += '/01.db_split.sh'
+	elif task == 'index_genome':
+		cmd = index_genome(cfg, genomefile = args['genomefile'], task = args['gtask'])
+		path += '/02.index.ref.sh' 
+	elif task == 'map_genome':
+		cmd = map_genome(cfg, genomefile = args['genomefile'], task = args['gtask'])
+		path += '/%02d.map.ref.sh' % (3 if step - 1 else 2)
+	elif task == 'merge_bam':
+		cmd = merge_bam(cfg, path = path, task = args['ptask'])
+		path += '/%02d.merge.bam.sh' % (4 if step - 1 else 3)
+	elif task == 'polish_genome':
+		cmd = polish_genome(cfg, path, genomefile = args['genomefile'], blc = args['blc'], task = args['gtask'])
+		path += '/%02d.polish.ref.sh' % (5 if step - 1 else 4)
+	write2file(cmd, path)
+	return path
+
+def check_task_type(task, lgs=None, hifi=None):
+	ret = False
+	if isinstance(task, int):
+		if lgs:
+			if task in [5, 3]:
+				ret = True
+		if hifi:
+			if task in [6]:
+				ret = True
+		if not lgs and not hifi:
+			if task in [1, 2, 3, 4]:
+				ret = True
+	else:
+		if lgs:
+			if 5 in task or 3 in task:
+				ret = True
+		if hifi:
+			if 6 in task:
+				ret = True
+		if not lgs and not hifi:
+			if 1 in task or 2 in task or 3 in task or 4 in task:
+				ret = True
+	return ret
+
+def polish_genome(cfg, path, genomefile, blc, task):
+	cmd = ''
+	polish_options = remove_option(cfg['polish_options'], '-ploidy')
+	if task == 5:
+		lgs_bam_fofn = path + '/lgs.sort.bam.list'
+		write2file(path + '/lgs.sort.bam', lgs_bam_fofn)
+		for i in range(int(cfg['parallel_jobs'])):
+			cmd += pypath() + ' ' + SCRIPT_PATH + '/lib/nextpolish2.py -sp ' + polish_options + \
+				' -g ' + genomefile + ' -b ' + blc + ' -i ' + str(i) + ' -l ' + lgs_bam_fofn + ' -r ' + cfg['lgs_read_type'] + \
+				' -o genome.nextpolish.part%03d.fasta\n' % i
+	elif task == 6:
+		hifi_bam_fofn = path + '/hifi.sort.bam.list'
+		write2file(path + '/hifi.sort.bam', hifi_bam_fofn)
+		for i in range(int(cfg['parallel_jobs'])):
+			cmd += pypath() + ' ' + SCRIPT_PATH + '/lib/nextpolish2.py -sp ' + polish_options + \
+				' -g ' + genomefile + ' -b ' + blc + ' -i ' + str(i) + ' -l ' + hifi_bam_fofn + ' -r hifi' + \
+				' -o genome.nextpolish.part%03d.fasta\n' % i
+	else:
+		for i in range(int(cfg['parallel_jobs'])):
+			cmd += pypath() + ' ' + SCRIPT_PATH + '/lib/nextpolish1.py ' + cfg['polish_options'] + \
+				' -g ' + genomefile + ' -b ' + blc + ' -i ' + str(i) + ' -t ' + str(task) + ' -s '\
+				+ path + '/sgs.sort.bam -l ' + path + '/lgs.sort.bam -o genome.nextpolish.part%03d.fasta\n' % i
+	return cmd
+
+def blc_genome(cfg, genomefile):
+	fa_len = {}
+	genome_size = 0
+	with open(genomefile + '.fai', 'r') as IN:
+		for line in IN:
+			lines = line.strip().split()
+			# if int(lines[1]) < cfg['min_len_seq']:
+			# 	continue
+			if int(lines[1]) >= maxint:
+				log.error('Length of seq: %s is too long, please split and try again.' % lines[0])
+
+			fa_len[lines[0]] = int(lines[1])
+			genome_size += int(lines[1])
+	cmd = ''
+	count = total_len = 0
+	blocksize = int(genome_size / float(cfg['parallel_jobs']) + 1)
+	for i in fa_len:
+		total_len += fa_len[i]
+		cmd += i + '\t' + str(count) + '\n'
+		if total_len >= blocksize:
+			total_len = 0
+			count += 1
+	path = genomefile + '.blc'
+	write2file(cmd, path)
+	return path
+
+def merge_bam(cfg, path, task):
+	from glob import glob
+	mergethread = cfg['multithread_jobs'] if cfg['sgs_use_duplicate_reads'] else max(int(int(cfg['multithread_jobs'])/2), 1)
+	MERGE_SGS_TEMPLATE = MERGE_LGS_TEMPLATE = SCRIPT_PATH + '/bin/samtools merge -f -b %s --threads ' + str(mergethread)
+	if not cfg['sgs_use_duplicate_reads']:
+		MERGE_SGS_TEMPLATE += ' -|' + SCRIPT_PATH + '/bin/samtools markdup --threads %d -r -s -' % \
+			(max(int(cfg['multithread_jobs']) - mergethread, 1))
+	MERGE_SGS_TEMPLATE += ' %s\n'
+	MERGE_LGS_TEMPLATE += ' %s\n'
+	INDEX_TEMPLATE = SCRIPT_PATH + '/bin/samtools index -@ ' + cfg['multithread_jobs'] + ' %s\n'
+	sgs_bam_list = hifi_bam_list = lgs_bam_list = ''
+
+	for subtask in task.jobs:
+		bam = parse_options_value(readfile(subtask.path), '-o', first = True)
+		if bam.startswith('sgs'):
+			sgs_bam_list += os.path.dirname(subtask.path) + '/' + bam + '\n'
+		elif bam.startswith('lgs'):
+			lgs_bam_list += os.path.dirname(subtask.path) + '/' + bam + '\n'
+		else:
+			hifi_bam_list += os.path.dirname(subtask.path) + '/' + bam + '\n'
+
+	cmd = ''
+	if sgs_bam_list:
+		sgs_bam_list_path = path + '/sgs.sort.bam.list'
+		write2file(sgs_bam_list, sgs_bam_list_path)
+		cmd += MERGE_SGS_TEMPLATE % (sgs_bam_list_path, path + '/sgs.sort.bam')
+		cmd += INDEX_TEMPLATE % (path + '/sgs.sort.bam')
+	if lgs_bam_list:
+		lgs_bam_list_path = path + '/lgs.sort.bam.list'
+		write2file(lgs_bam_list, lgs_bam_list_path)
+		cmd += MERGE_LGS_TEMPLATE % (lgs_bam_list_path, path + '/lgs.sort.bam')
+		cmd += INDEX_TEMPLATE % (path + '/lgs.sort.bam')
+	if hifi_bam_list:
+		hifi_bam_list_path = path + '/hifi.sort.bam.list'
+		write2file(hifi_bam_list, hifi_bam_list_path)
+		cmd += MERGE_LGS_TEMPLATE % (hifi_bam_list_path, path + '/hifi.sort.bam')
+		cmd += INDEX_TEMPLATE % (path + '/hifi.sort.bam')
+	return cmd
+
+def clean_split_bam(task):
+	for subtask in task.jobs:
+		bam = parse_options_value(readfile(subtask.path), '-b', first = True)
+		for input_file in readfile(bam).strip().split("\n"):
+			if os.path.exists(input_file):
+				os.remove(input_file)
+				log.info('remove temporary result: ' + input_file)
+
+def clean_merge_bam(task):
+	for subtask in task.jobs:
+		bam = parse_options_value(readfile(subtask.path), '-l', first = True)
+		if os.path.exists(bam):
+			for input_file in readfile(bam).strip().split("\n"):
+				if os.path.exists(input_file):
+					os.remove(input_file)
+					log.info('remove temporary result: ' + input_file)
+		else:
+			input_file = parse_options_value(readfile(subtask.path), '-s', first = True)
+			if os.path.exists(input_file):
+				os.remove(input_file)
+				log.info('remove temporary result: ' + input_file)
+
+def clean_split_fa(task):
+	for subtask in task.jobs:
+		input_files = parse_options_value(readfile(subtask.path), 'cat', first = False, last = False)
+		for input_file in input_files.strip().split():
+			if os.path.exists(input_file):
+					os.remove(input_file)
+					log.info('remove temporary result: ' + input_file)
+
+
+def index_genome(cfg, genomefile, task):
+	cmd = ''
+	if check_task_type(task = task):
+		if 'minimap' in cfg['sgs_align_options']:
+			cmd = SCRIPT_PATH + '/bin/minimap2 --split-prefix tmp -a -x sr -d ' +  genomefile + '.sgs ' + genomefile + '\n'
+		else:
+			cmd = SCRIPT_PATH + '/bin/bwa index -p ' +  genomefile + '.sgs ' + genomefile + '\n'
+	cmd += SCRIPT_PATH + '/bin/samtools faidx ' +  genomefile + '\n'
+	return cmd
+
+def map_genome(cfg, genomefile, task):
+	THREADS = str(cfg['align_threads']) if int(cfg['align_threads']) < 5 else '5'
+	SGS_READS = cfg['workdir'] + ('/input.sgspart.%03d.fastq.gz' if 1 - int(cfg['sgs_unpaired']) else '/input.sgspart.%03d.fasta.gz')
+	BWA_TEMPLATE = SCRIPT_PATH + '/bin/' + cfg['sgs_align_options'] + ' ' + genomefile + '.sgs' + ' %s|' + \
+		SCRIPT_PATH + '/bin/samtools view --threads 5 -F 0x4 -b - |' 
+	if not cfg['sgs_use_duplicate_reads']:
+		BWA_TEMPLATE += SCRIPT_PATH + '/bin/samtools fixmate -m --threads ' + THREADS + '  - - |'
+	BWA_TEMPLATE += SCRIPT_PATH + '/bin/samtools sort - -m 2g --threads ' + THREADS + ' -o sgs.part%03d.sort.bam\n'
+
+	LGS_READS = cfg['workdir'] + '/input.lgspart.%03d.fasta.gz'
+	MINIMAP2_LGS_TEMPLATE = SCRIPT_PATH + '/bin/minimap2 --split-prefix tmp -a ' + cfg['lgs_minimap2_options'] + ' ' + \
+		genomefile + ' ' + LGS_READS + '|' + SCRIPT_PATH + '/bin/samtools view --threads 5 -F 0x4 -b - |' + SCRIPT_PATH + \
+		'/bin/samtools sort - -m 2g --threads ' + THREADS + ' -o lgs.part%03d.sort.bam\n'
+
+	HIFI_READS = cfg['workdir'] + '/input.hifipart.%03d.fasta.gz'
+	MINIMAP2_HIFI_TEMPLATE = SCRIPT_PATH + '/bin/minimap2 --split-prefix tmp -a ' + cfg['hifi_minimap2_options'] + ' ' + \
+		genomefile + ' ' + HIFI_READS + '|' + SCRIPT_PATH + '/bin/samtools view --threads 5 -F 0x4 -b - |' + SCRIPT_PATH + \
+		'/bin/samtools sort - -m 2g --threads ' + THREADS + ' -o hifi.part%03d.sort.bam\n'
+
+	cmd = ''
+	for i in range(int(cfg['parallel_jobs'])):
+		if check_task_type(task = task):
+			cmd += BWA_TEMPLATE % (SGS_READS % i, i)
+		if check_task_type(task = task, lgs = True):
+			cmd += MINIMAP2_LGS_TEMPLATE % (i, i)
+		if check_task_type(task = task, hifi = True):
+			cmd += MINIMAP2_HIFI_TEMPLATE % (i, i)
+	return cmd
+
+def set_genome(Task, cfg, task, path):
+	genomefile = path  + '/input.genome.fasta'
+	if task:
+		cmd = 'cat'
+		for i in range(len(task.jobs)):
+			cmd += ' ' + os.path.dirname(task.jobs[i].path) + '/' + 'genome.nextpolish.part%03d.fasta' % i
+		cmd += ' > ' + genomefile + '\n'
+		write2file(cmd, path + '/01.merge.ref.sh')
+
+		task = Task(path + '/01.merge.ref.sh', dir_prefix='merge_ref', job_prefix='merge_ref', convert_path=False)
+		if not task.is_finished():
+			task.set_run(job_type=cfg['job_type'], use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], kill=cfg['kill'],\
+				check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+			task.run.start()
+			if task.run.is_finished():
+				task.set_task_finished()
+				log.info('merge_ref done')
+			else:
+				log.error('merge_ref failed: please check the following logs:')
+				for subtask in task.run.unfinished_jobs:
+					log.error(subtask.err)
+				sys.exit(1)
+		else:
+			log.info('skip step: merge_ref')
+
+		if cfg['deltmp']:
+			clean_split_fa(task)
+	else:
+		if cfg['genome'].endswith('gz'):
+			genomefile += '.gz'
+		if not os.path.exists(genomefile):
+			os.symlink(cfg['genome'], genomefile)
+	return genomefile
+
+def db_split(cfg):
+	cmd = ''
+	if check_task_type(cfg['task']):
+		cmd = ' '.join(map(str, [SCRIPT_PATH + '/bin/seq_split',
+			'-d', cfg['workdir'],
+			'-m', cfg['sgs_block_size'],
+			'-n', cfg['parallel_jobs'],
+			'' if cfg['sgs_rm_nread'] else '-N',
+			'-t', cfg['multithread_jobs'],
+			'-i', 1 - int(cfg['sgs_unpaired']),
+			'-s', int(cfg['sgs_max_depth']) * cfg['genome_size'],
+			'-p', 'input.sgspart',
+			cfg['sgs_fofn'],
+			'\n'
+			]))
+
+	if check_task_type(cfg['task'], lgs = True):
+		cmd += ' '.join(map(str, [SCRIPT_PATH + '/bin/seq_split',
+			'-d', cfg['workdir'],
+			'-m', cfg['lgs_block_size'],
+			'-n', cfg['parallel_jobs'],
+			'-i', 0,
+			'-t', cfg['multithread_jobs'],
+			'-f', cfg['lgs_min_read_len'],
+			'-l', cfg['lgs_max_read_len'],
+			'-s', int(cfg['lgs_max_depth']) * cfg['genome_size'],
+			'-p', 'input.lgspart',
+			cfg['lgs_fofn'],
+			'\n'
+			]))
+
+	if check_task_type(cfg['task'], hifi = True):
+		cmd += ' '.join(map(str, [SCRIPT_PATH + '/bin/seq_split',
+			'-d', cfg['workdir'],
+			'-m', cfg['hifi_block_size'],
+			'-n', cfg['parallel_jobs'],
+			'-i', 0,
+			'-t', cfg['multithread_jobs'],
+			'-f', cfg['hifi_min_read_len'],
+			'-l', cfg['hifi_max_read_len'],
+			'-s', int(cfg['hifi_max_depth']) * cfg['genome_size'],
+			'-p', 'input.hifipart',
+			cfg['hifi_fofn'],
+			'\n'
+			]))
+	return cmd
+
+def gather_ctg_cns_output(cfg, subtasks):
+	ctg_result = []
+	ctg_result_iglob = 'genome.nextpolish.part*.fasta'
+	for subtask in subtasks:
+		filenames = list(iglob(os.path.dirname(subtask.path) + '/' + ctg_result_iglob))
+		if len(filenames) == 1:
+			ctg_result.append(filenames[0])
+		else:
+			log.error('Failed to find output file pattern for task: ' + subtask.path)
+			sys.exit(1)	
+
+	i = 0
+	asm = cfg['workdir'] + '/genome.nextpolish.fasta'
+	while os.path.exists(asm):
+		i += 1
+		asm = cfg['workdir'] + '/genome.nextpolish.v%d.fasta' % (i)
+	stat = []
+	i = 0
+	OUT = open(asm, 'w')
+	for ctg_file in ctg_result:
+		with open(ctg_file) as IN:
+			for line in IN:
+				print(line.strip(), file=OUT)
+				if line.startswith('>'):
+					lines = line.strip().split()
+					stat.append(int(lines[1]))
+	OUT.close()
+	out = cal_n50_info(stat, asm + '.stat')
+
+	return asm, out
+
+def set_workpath(cfg, gtask):
+	global step
+	step += 1
+	if gtask == 1:
+		return cfg['score_chain'] % (step - 1)
+	elif gtask == 2:
+		return cfg['kmer_count'] % (step - 1)
+	elif gtask == 3:
+		return cfg['snp_phase'] % (step - 1)
+	elif gtask == 4:
+		return cfg['snp_valid'] % (step - 1)
+	elif gtask == 5:
+		return cfg['lgs_polish'] % (step - 1)
+	elif gtask == 6:
+		return cfg['hifi_polish'] % (step - 1)
+	else:
+		log.error('Error, task only accept: [all,default,best,1,2,3,4,5,6]')
+		sys.exit(1)
+
+def mkdir(d):
+	if not pmkdir(d):
+		log.info('skip mkdir: ' + d)
+	else:
+		log.info('mkdir: ' + d)
+
+def main(args):
+	if not args[1]:
+		parser.print_help()
+		sys.exit(1)
+
+	global log
+	log_file = 'pid' + str(os.getpid()) + '.' + args[0].log.strip('pidXXX.')
+	log = plog(log_file)
+	log.info('NextPolish start...')
+	log.info('version:%s logfile:%s' % (getver(SCRIPT_PATH), log_file))
+	
+	cfg = ConfigParser(args[1][0]).cfg
+	log.info('options: ')
+	log.info(cfg)
+
+	if os.path.exists(cfg['workdir']) and not cfg['rewrite']:
+		for i in range(100):
+			e = cfg['workdir'] + '.backup' + str(i)
+			if not os.path.exists(e):
+				shutil.move(cfg['workdir'], e)
+				log.warning('mv ' + cfg['workdir'] + ' to ' + e)
+				break
+	pmkdir(cfg['workdir'])
+
+	task = None
+	for gtask in cfg['task']:
+		log.info('step %d and task %d start:' % (step, gtask))
+		path = set_workpath(cfg, gtask)
+		pmkdir(path)
+		genomefile = set_genome(Task, cfg, task, path)
+		if not task:
+			task = Task(set_task(cfg, 'db_split', genomefile=genomefile, path=path, gtask=gtask), dir_prefix='db_split',\
+				job_prefix = cfg['job_prefix'])
+			if not task.is_finished():
+				task.set_run(max_parallel_job=cfg['parallel_jobs'], job_type=cfg['job_type'], \
+					mem=str(int(cfg['multithread_jobs'])/2) + 'G', cpu=cfg['multithread_jobs'],\
+					use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], kill=cfg['kill'],\
+					check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+				task.run.start()
+				if task.run.is_finished():
+					task.set_task_finished()
+					log.info('db_split done')
+				else:
+					log.error('db_split failed: please check the following logs:')
+					for subtask in task.run.unfinished_jobs:
+						log.error(subtask.err)
+					sys.exit(1)
+			else:
+				log.info('skip step: db_split')
+		else:
+			task = Task(set_task(cfg, 'index_genome', path=path, genomefile=genomefile, gtask=gtask), \
+					dir_prefix='index_genome', job_prefix=cfg['job_prefix'], convert_path=False)
+			if not task.is_finished():
+				task.set_run(max_parallel_job=cfg['parallel_jobs'], job_type=cfg['job_type'], mem='3G', \
+					cpu=cfg['multithread_jobs'], use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], \
+					kill=cfg['kill'], check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+				total_tasks = len(task.run.unfinished_jobs)
+				task.run.start()
+				while (not task.run.is_finished()):
+					if len(task.run.unfinished_jobs) == total_tasks or not cfg['rerun']:
+						log.error('index_genome failed: please check the following logs:')
+						for subtask in task.run.unfinished_jobs:
+							log.error(subtask.err)
+						sys.exit(1)
+					else:
+						log.info(str(len(task.run.unfinished_jobs)) + ' index_genome jobs failed, and rerun for the '+ str(cfg['rerun']) + ' time')
+						task.run.rerun()
+						cfg['rerun'] -= 1
+				else:
+					task.set_task_finished()
+					log.info('index_genome done')
+			else:
+				log.info('skip step: index_genome')
+
+		task = Task(set_task(cfg, 'map_genome', path=path, genomefile=genomefile, gtask=gtask), \
+			dir_prefix='map_genome', job_prefix=cfg['job_prefix'], convert_path=False)
+		if not task.is_finished():
+			task.set_run(max_parallel_job=cfg['parallel_jobs'], job_type = cfg['job_type'], mem='3G',\
+				cpu=cfg['align_threads'], use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], \
+				kill=cfg['kill'], check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+			total_tasks = len(task.run.unfinished_jobs)
+			task.run.start()
+
+			while (not task.run.is_finished()):
+				if len(task.run.unfinished_jobs) == total_tasks or not cfg['rerun']:
+					log.error('map_genome failed: please check the following logs:')
+					for subtask in task.run.unfinished_jobs:
+						log.error(subtask.err)
+					sys.exit(1)
+				else:
+					log.info(str(len(task.run.unfinished_jobs)) + ' map_genome jobs failed, and rerun for the ' + \
+						str(cfg['rerun']) + ' time')
+					task.run.rerun()
+					cfg['rerun'] -= 1
+			else:
+				task.set_task_finished()
+				log.info('align_genome done')
+		else:
+			log.info('skip step: align_genome')
+
+		task = Task(set_task(cfg, 'merge_bam', path=path, ptask=task), dir_prefix='merge_bam', \
+			job_prefix=cfg['job_prefix'], convert_path=False, group=2)
+		if not task.is_finished():
+			task.set_run(max_parallel_job=cfg['parallel_jobs'], job_type = cfg['job_type'], mem='3G',\
+				cpu=cfg['multithread_jobs'], use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], \
+				kill=cfg['kill'], check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+			total_tasks = len(task.run.unfinished_jobs)
+			task.run.start()
+
+			while (not task.run.is_finished()):
+				if len(task.run.unfinished_jobs) == total_tasks or not cfg['rerun']:
+					log.error('merge_bam failed: please check the following logs:')
+					for subtask in task.run.unfinished_jobs:
+						log.error(subtask.err)
+					sys.exit(1)
+				else:
+					log.info(str(len(task.run.unfinished_jobs)) + ' merge_bam jobs failed, and rerun for the '+ \
+						str(cfg['rerun']) + ' time')
+					task.run.rerun()
+					cfg['rerun'] -= 1
+			else:
+				task.set_task_finished()
+				log.info('merge_bam done')
+		else:
+			log.info('skip step: merge_bam')
+		
+		if cfg['deltmp']:
+			clean_split_bam(task)
+		blc = blc_genome(cfg, genomefile)
+		task = Task(set_task(cfg, 'polish_genome', path=path, blc=blc, genomefile=genomefile, gtask=gtask), \
+			dir_prefix='polish_genome', job_prefix=cfg['job_prefix'], convert_path=False)
+		if not task.is_finished():
+			task.set_run(max_parallel_job=cfg['parallel_jobs'], job_type=cfg['job_type'], \
+				mem=str(cfg['multithread_jobs']) + 'G', cpu=cfg['multithread_jobs'], 
+				use_drmaa=cfg['use_drmaa'], submit=cfg['submit'], kill=cfg['kill'], \
+				check_alive=cfg['check_alive'], job_id_regex=cfg['job_id_regex'])
+			total_tasks = len(task.run.unfinished_jobs)
+			task.run.start()
+
+			while (not task.run.is_finished()):
+				if len(task.run.unfinished_jobs) == total_tasks or not cfg['rerun']:
+					log.error('polish_genome failed: please check the following logs:')
+					for subtask in task.run.unfinished_jobs:
+						log.error(subtask.err)
+					sys.exit(1)
+				else:
+					log.info(str(len(task.run.unfinished_jobs)) + ' polish_genome jobs failed, and rerun for the '+ str(cfg['rerun']) + ' time')
+					task.run.rerun()
+					cfg['rerun'] -= 1
+			else:
+				task.set_task_finished()
+				log.info('polish_genome done')
+		else:
+			log.info('skip step: polish_genome')
+
+		if cfg['deltmp']:
+			clean_merge_bam(task)
+	asm, stat = gather_ctg_cns_output(cfg, task.jobs)
+
+	log.info('nextPolish has finished')
+	log.info('final polished genome files:')
+	log.info('\033[35m %s \033[0m' % asm)
+	log.info('final stat file:')
+	log.info('\033[35m %s.stat \033[0m' % (asm))
+	log.info('asm stat:')
+	log.info("\n" + stat)
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser(
+		add_help = False,
+		formatter_class = HelpFormatter,
+		description = '''
+nextPolish:
+	 Fast and accurately polish the genome generated by long reads
+
+exmples:
+	%(prog)s run.cfg
+
+For more information about NextPolish, see https://github.com/Nextomics/NextPolish
+'''
+	)
+	parser.version = '%(prog)s ' + getver(SCRIPT_PATH)
+	parser.add_argument ('-l','--log',metavar = 'FILE',type = str, default = 'pidXXX.log.info',
+		help = 'log file')
+	parser.add_argument('-v', '--version', action='version')
+	parser.add_argument('-h', '--help',  action='help',
+		help = 'please use the config file to pass parameters')
+	args = parser.parse_known_args()
+	main(args)
