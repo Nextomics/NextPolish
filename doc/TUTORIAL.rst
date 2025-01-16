@@ -134,7 +134,7 @@ Polishing using long reads only
         threads=20
         read=read.fasta.gz
         read_type=ont #{clr,hifi,ont}, clr=PacBio continuous long read, hifi=PacBio highly accurate long reads, ont=NanoPore 1D reads
-        mapping_option=(["clr"]="map-pb" ["hifi"]="asm20" ["ont"]="map-ont")
+        declare -A mapping_option=(["clr"]="map-pb" ["hifi"]="asm20" ["ont"]="map-ont")
         input=input.genome.fa
 
         for ((i=1; i<=${round};i++)); do
